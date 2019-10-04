@@ -81,12 +81,14 @@ str_view(words, "[^c]ie", match = TRUE)
 ```{r telephone number}
 telen <- rx() %>%
   rx_start_of_line() %>%
+  rx_maybe("(") %>%
   rx_digit() %>%
   rx_repeat_previous(3) %>%
-  rx_any_of(".-") %>%
+  rx_maybe(")") %>%
+  rx_any_of(" .-") %>%
   rx_digit() %>%
   rx_repeat_previous(3) %>%
-  rx_any_of(".-") %>%
+  rx_any_of(" .-") %>%
   rx_digit() %>%
   rx_repeat_previous(4) %>%
   rx_end_of_line() 
