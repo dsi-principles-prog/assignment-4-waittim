@@ -10,7 +10,6 @@ For the regular expression exercises, try writing first using regular expression
 library(lubridate)
 library(stringr)
 library(RVerbalExpressions)
-
 ```
 
 
@@ -57,6 +56,15 @@ stringr::words
 
 ```{r more than 7}
 str_view(words, "\\w{7,}", match = TRUE)
+
+morethan7 <- rx() %>%
+  rx_word_char() %>%
+  rx_repeat_previous(7) %>%
+  rx_anything()
+morethan7
+
+str_view(words, morethan7, match = TRUE)
+
 ```
 
 
@@ -67,18 +75,38 @@ str_view(words, "\\w{7,}", match = TRUE)
 **That only contain consonants. (Hint: thinking about matching “not”-vowels.)**
 
 ```{r only consonants}
-str_view(words, "^[^aeiou]+$", match = TRUE)
+str_detect(words, "^[^aeiou]+$") 
+
+consonants_only <- rx() %>%
+  rx_start_of_line() %>%
+  rx_something_but("aeiou") %>%
+  rx_end_of_line()
+consonants_only
+
+str_detect(words, consonants_only) 
+
 ```
 
 **Empirically verify the rule “i before e except after c”.**
 
 ```{r no c before ie}
-str_view(words, "[^c]ie", match = TRUE)
+str_detect(words, "[^c]ie")
+
+nc_ie <- rx() %>%
+  rx_something_but("c") %>%
+  rx_find("ie")
+nc_ie
+
+str_detect(words, nc_ie)
+
 ```
 
 **Create a regular expression that will match telephone numbers as commonly written in the US. Split this up into multiple expressions as needed.**
 
 ```{r telephone number}
+phonenum <- c("(615) 972-0128","(615) 481.3147","66z.777 8888")
+str_detect(phonenum, "^(\\()?[0-9]{3}(\\))?[ -\\.][0-9]{3}[ -\\.][0-9]{4}$")
+
 telen <- rx() %>%
   rx_start_of_line() %>%
   rx_maybe("(") %>%
@@ -93,7 +121,12 @@ telen <- rx() %>%
   rx_repeat_previous(4) %>%
   rx_end_of_line() 
 telen
+
+str_detect(phonenum, telen)
+
 ```
+
+
 
 
 # Part 2
@@ -101,17 +134,44 @@ telen
 
 Choose a dataset (this can be the same dataset as the last assignment, or a new one). Define a predictive modeling problem. Create the appropriate files and notebooks to do the following:
 
+```{r libraries, include=FALSE}
+library(readr)
+```
+
 1. Describe the data and the problem
+```{r import data, include=FALSE}
+USvideos <- read_csv("USvideos.csv")
+```
+
+This dataset comes from Kaggle Competitions, 
+
+This dataset includes several months (and counting) of data on daily trending YouTube videos. Data is included for the US, GB, DE, CA, and FR regions (USA, Great Britain, Germany, Canada, and France, respectively), with up to 200 listed trending videos per day.
+
+EDIT: Now includes data from RU, MX, KR, JP and IN regions (Russia, Mexico, South Korea, Japan and India respectively) over the same time period.
+
+Each region’s data is in a separate file. Data includes the video title, channel title, publish time, tags, views, likes and dislikes, description, and comment count.
+
 
 2. Read in and check data
 
-2. Clean up the data. 
+
+
+
+3. Clean up the data. 
+
+
+
 
 *Note: You may request that score for these sections replace your score for the coding portion of Assignment 3.*
 
 4. Using best practices, write four functions which add engineered features to the dataset, including a description and rationale. Include a test to determine whether the features are working as intended. 
 
+
+
 5. Prepare the data for modeling
+
+
+
 
 Note: this will form the basis for your midterm project. Take advantage of TA's and my office hours. We can provide feedback and guidance. 
 
