@@ -75,7 +75,7 @@ str_view(words, morethan7, match = TRUE)
 **That only contain consonants. (Hint: thinking about matching “not”-vowels.)**
 
 ```{r only consonants}
-str_detect(words, "^[^aeiou]+$") 
+words[str_detect(words, "^[^aeiou]+$") ]
 
 consonants_only <- rx() %>%
   rx_start_of_line() %>%
@@ -83,29 +83,27 @@ consonants_only <- rx() %>%
   rx_end_of_line()
 consonants_only
 
-str_detect(words, consonants_only) 
+words[str_detect(words, consonants_only) ]
 
 ```
 
 **Empirically verify the rule “i before e except after c”.**
 
 ```{r no c before ie}
-str_detect(words, "[^c]ie")
+words[str_detect(words, "[^c]ie")]
 
 nc_ie <- rx() %>%
   rx_something_but("c") %>%
   rx_find("ie")
 nc_ie
 
-str_detect(words, nc_ie)
+words[str_detect(words, nc_ie)]
 
 ```
 
 **Create a regular expression that will match telephone numbers as commonly written in the US. Split this up into multiple expressions as needed.**
 
 ```{r telephone number}
-phonenum <- c("(615) 972-0128","(615) 481.3147","66z.777 8888")
-str_detect(phonenum, "^(\\()?[0-9]{3}(\\))?[ -\\.][0-9]{3}[ -\\.][0-9]{4}$")
 
 telen <- rx() %>%
   rx_start_of_line() %>%
@@ -122,7 +120,11 @@ telen <- rx() %>%
   rx_end_of_line() 
 telen
 
-str_detect(phonenum, telen)
+phonenum <- c("(615) 972-0128","(615) 481.3147","66z.777 8888")
+
+phonenum[str_detect(phonenum, "^(\\()?[0-9]{3}(\\))?[ -\\.][0-9]{3}[ -\\.][0-9]{4}$")]
+
+phonenum[str_detect(phonenum, telen)]
 
 ```
 
@@ -134,37 +136,221 @@ str_detect(phonenum, telen)
 
 Choose a dataset (this can be the same dataset as the last assignment, or a new one). Define a predictive modeling problem. Create the appropriate files and notebooks to do the following:
 
-```{r libraries, include=FALSE}
+```{r libraries2, include=FALSE}
 library(readr)
+library(janitor)
+library(assertr)
+library(tidyverse)
 ```
 
 1. Describe the data and the problem
-```{r import data, include=FALSE}
-USvideos <- read_csv("USvideos.csv")
+```{r import part2 data, include=FALSE}
+USvideos <- read_csv("USvideos.csv") %>%
+  clean_names()
 ```
 
-This dataset comes from Kaggle Competitions, 
+This dataset comes from Kaggle Competitions, includes several months (and counting) of data on daily trending YouTube videos. Data is for the US with up to 200 listed trending videos per day.
 
-This dataset includes several months (and counting) of data on daily trending YouTube videos. Data is included for the US, GB, DE, CA, and FR regions (USA, Great Britain, Germany, Canada, and France, respectively), with up to 200 listed trending videos per day.
+```{r}
+dim(USvideos)
+str(USvideos)
+```
 
-EDIT: Now includes data from RU, MX, KR, JP and IN regions (Russia, Mexico, South Korea, Japan and India respectively) over the same time period.
-
-Each region’s data is in a separate file. Data includes the video title, channel title, publish time, tags, views, likes and dislikes, description, and comment count.
+Data includes the video title, channel title, publish time, tags, views, likes and dislikes, description, and comment count.
 
 
 2. Read in and check data
 
+```{r}
+assert(data = USvideos, in_set(1, 43, allow.na = FALSE), category_id) 
+```
 
+```{r}
+assert(data = USvideos, within_bounds(lower.bound = 0, upper.bound = Inf, allow.na = FALSE), views)
+```
+
+
+```{r}
+assert(data = USvideos, within_bounds(lower.bound = 0,upper.bound = Inf, allow.na = FALSE), likes)
+```
+
+
+```{r}
+assert(data = USvideos, within_bounds(lower.bound = 0, upper.bound = Inf, allow.na = FALSE), dislikes)
+```
+
+
+```{r}
+assert(data = USvideos, within_bounds(lower.bound = 0, upper.bound = Inf, allow.na = FALSE), comment_count)
+```
+
+
+```{r}
+assert(data = USvideos, in_set(TRUE, FALSE, allow.na = FALSE), comments_disabled)
+```
+
+
+```{r}
+assert(data = USvideos, in_set(TRUE, FALSE, allow.na = FALSE), ratings_disabled)
+```
+
+
+```{r}
+assert(data = USvideos, in_set(TRUE, FALSE, allow.na = FALSE), video_error_or_removed) 
+```
+
+```{r}
+class(USvideos$trending_date)
+class(USvideos$category_id)
+class(USvideos$publish_time)
+class(USvideos$comments_disabled)
+class(USvideos$ratings_disabled)
+class(USvideos$video_error_or_removed)
+```
 
 
 3. Clean up the data. 
 
+```{r}
+USvideos_NNA <- as.data.frame(na.omit(USvideos))
+USvideos_NNA
+```
+
+```{r}
+USvideos_NNA <- USvideos_NNA %>%
+  mutate(trending_date = ydm(trending_date))
+```
+
+```{r}
+USvideos_NNA[["category_id"]] <- factor(USvideos_NNA[["category_id"]])
+class(USvideos_NNA$trending_date)
+```
 
 
 
 *Note: You may request that score for these sections replace your score for the coding portion of Assignment 3.*
 
 4. Using best practices, write four functions which add engineered features to the dataset, including a description and rationale. Include a test to determine whether the features are working as intended. 
+
+```{r}
+get_time_point <- function(df, time_column){
+  library(tidyverse)
+  if(class(df[[time_column]])==c("POSIXct", "POSIXt") | class(df[[time_column]])=="Date"){
+    print("Date format check done.")
+  }else{
+      stop("Not a date format, please use 'lubridate' package.")
+  }
+  # year_col_name <- str_c(as.character(df$time_column),"_year")
+  # month_col_name <- str_c(as.character(df$time_column),"_month")
+  # day_col_name <- str_c(as.character(df$time_column),"_day")
+  # hour_col_name <- str_c(as.character(df$time_column),"_hour")
+  # minute_col_name <- str_c(as.character(df$time_column),"_minute")
+  # second_col_name <- str_c(as.character(df$time_column),"_second")
+  if(class(df[[time_column]])=="Date"){
+    df <- df %>%
+      mutate_at({{time_column}}, list(year=years, month=months, day=days ))
+  }else{
+    df <- df %>%
+      mutate(year_col_name = years({{time_column}}),
+             month_col_name = months({{time_column}}),
+             day_col_name = days({{time_column}}),
+             hour_col_name = hours({{time_column}}),
+             minute_col_name = minutes({{time_column}}),
+             second_col_name = seconds({{time_column}}))
+  }
+  df
+}
+```
+
+```{r}
+get_time_point(USvideos_NNA,"trending_date")
+```
+
+```{r}
+head(USvideos_NNA)
+```
+
+
+```{r}
+df <- mutate_at(USvideos_NNA, trending_date, list(year=years, month=monsth, day=days ))
+df
+get_time_point(USvideos_NNA, trending_date)
+```
+
+```{r}
+# get_time_point <- function(df, time_column){
+#   df[time_column]
+#   class(df[[time_column]]) == "Date" #| class(df$time_column)==c("POSIXct", "POSIXt")
+# }
+# get_time_point(USvideos_NNA, "trending_date")
+# 
+# class(USvideos_NNA$trending_date) == "Date"
+# 
+# class(USvideos_NNA$trending_date)
+```
+
+
+
+```{r}
+count_rows <- function(df, chr_column){
+  library(tidyverse)
+  if(class(df[[chr_column]]) == "character"){
+    print("Character format check done.")
+  }else{
+    stop("Not a charater format.")
+  }
+  new_col_name <- paste0({{chr_column}},"_row_num")
+  df %>%
+    mutate(new_col_name = str_count({{chr_column}}, "\n") + 1)
+}
+```
+
+```{r}
+count_rows(USvideos_NNA, description)
+```
+
+
+```{r}
+count_tags <- function(df, tag_column){
+  library(tidyverse)
+  if(class(df[[tag_column]]) == "character"){
+    print("Character format check done.")
+  }else{
+    stop("Not a charater format.")
+  }
+  new_col_name <- paste0({{tag_column}},"_tag_num")
+  df %>%
+    mutate(new_col_name = str_count({{tag_column}}, '"|"') + 1)
+}
+```
+
+```{r}
+get_chr_length <- function(df, chr_column){
+  if(class(df[[chr_column]]) == "character"){
+    print("Character format check done.")
+  }else{
+    stop("Not a charater format.")
+  }
+  new_col_name <- paste0({{chr_column}},"_length")
+  df %>%
+    mutate(new_col_name = nchar({{chr_column}}))
+}
+```
+
+```{r}
+get_ratio <- function(numerator, denominator){
+  if(class(df[[numerator]]) == "double" & class(df[[denominator]]) == "double"){
+    print("numerical format check done.")
+  }else{
+    stop("Not a numerical format.")
+  }
+  new_col_name <- stringr::str_c({{numerator}},"/",{{denominator}},"_ratio")
+  df %>%
+    mutate(new_col_name = {{numerator}}/{{denominator}})
+}
+```
+
+
 
 
 
