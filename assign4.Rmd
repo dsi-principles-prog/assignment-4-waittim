@@ -90,16 +90,16 @@ words[str_detect(words, consonants_only) ]
 **Empirically verify the rule “i before e except after c”.**
 
 ```{r no c before ie}
-words[str_detect(words, "[^c]ie")]
+words[str_detect(words, "cie")]
 
 nc_ie <- rx() %>%
-  rx_something_but("c") %>%
-  rx_find("ie")
+  rx_find("cie")
 nc_ie
 
 words[str_detect(words, nc_ie)]
 
 ```
+not corect
 
 **Create a regular expression that will match telephone numbers as commonly written in the US. Split this up into multiple expressions as needed.**
 
@@ -221,108 +221,78 @@ USvideos_NNA <- USvideos_NNA %>%
   mutate(trending_date = ydm(trending_date))
 ```
 
-```{r}
-USvideos_NNA[["category_id"]] <- factor(USvideos_NNA[["category_id"]])
-class(USvideos_NNA$trending_date)
-```
-
-
 
 *Note: You may request that score for these sections replace your score for the coding portion of Assignment 3.*
 
 4. Using best practices, write four functions which add engineered features to the dataset, including a description and rationale. Include a test to determine whether the features are working as intended. 
 
 ```{r}
-get_time_point <- function(df, time_column){
+get_day_point <- function(df, day_column){
+  library(lubridate)
   library(tidyverse)
-  if(class(df[[time_column]])==c("POSIXct", "POSIXt") | class(df[[time_column]])=="Date"){
+
+  if(class(df[[day_column]])=="Date"){
     print("Date format check done.")
   }else{
       stop("Not a date format, please use 'lubridate' package.")
   }
-  # year_col_name <- str_c(as.character(df$time_column),"_year")
-  # month_col_name <- str_c(as.character(df$time_column),"_month")
-  # day_col_name <- str_c(as.character(df$time_column),"_day")
-  # hour_col_name <- str_c(as.character(df$time_column),"_hour")
-  # minute_col_name <- str_c(as.character(df$time_column),"_minute")
-  # second_col_name <- str_c(as.character(df$time_column),"_second")
-  if(class(df[[time_column]])=="Date"){
-    df <- df %>%
-      mutate_at({{time_column}}, list(year=years, month=months, day=days ))
-  }else{
-    df <- df %>%
-      mutate(year_col_name = years({{time_column}}),
-             month_col_name = months({{time_column}}),
-             day_col_name = days({{time_column}}),
-             hour_col_name = hours({{time_column}}),
-             minute_col_name = minutes({{time_column}}),
-             second_col_name = seconds({{time_column}}))
-  }
+
+  df <- df %>%
+    mutate_at(day_column, list(date_year=year, date_month=month, date_day=day)) 
   df
 }
 ```
 
-```{r}
-get_time_point(USvideos_NNA,"trending_date")
-```
 
 ```{r}
-head(USvideos_NNA)
+get_time_point <- function(df, time_column){
+  library(lubridate)
+  library(tidyverse)
+
+  if(class(df[[time_column]])[1]=="POSIXct"){
+    print("Timeformat check done.")
+  }else{
+      stop("Not a time format, please use 'lubridate' package.")
+  }
+  df <- df %>%
+    mutate_at(time_column, list(time_year=year, time_month=month, time_day=day, time_hour=hour, time_minute=minute, time_second=second)) 
+  df
+}
 ```
-
-
-```{r}
-df <- mutate_at(USvideos_NNA, trending_date, list(year=years, month=monsth, day=days ))
-df
-get_time_point(USvideos_NNA, trending_date)
-```
-
-```{r}
-# get_time_point <- function(df, time_column){
-#   df[time_column]
-#   class(df[[time_column]]) == "Date" #| class(df$time_column)==c("POSIXct", "POSIXt")
-# }
-# get_time_point(USvideos_NNA, "trending_date")
-# 
-# class(USvideos_NNA$trending_date) == "Date"
-# 
-# class(USvideos_NNA$trending_date)
-```
-
 
 
 ```{r}
 count_rows <- function(df, chr_column){
   library(tidyverse)
+  library(stringr)
   if(class(df[[chr_column]]) == "character"){
     print("Character format check done.")
   }else{
     stop("Not a charater format.")
   }
-  new_col_name <- paste0({{chr_column}},"_row_num")
+
   df %>%
-    mutate(new_col_name = str_count({{chr_column}}, "\n") + 1)
+    mutate(chr_row_num = str_count(df[[chr_column]], pattern = fixed("\\n")) + 1)
+  df
 }
 ```
 
-```{r}
-count_rows(USvideos_NNA, description)
-```
-
 
 ```{r}
-count_tags <- function(df, tag_column){
+count_pattern <- function(df, tag_column){
   library(tidyverse)
+  library(stringr)
   if(class(df[[tag_column]]) == "character"){
     print("Character format check done.")
   }else{
     stop("Not a charater format.")
   }
-  new_col_name <- paste0({{tag_column}},"_tag_num")
   df %>%
-    mutate(new_col_name = str_count({{tag_column}}, '"|"') + 1)
+    mutate(pattern_num = str_count(df[[tag_column]], pattern = fixed('"|"')) + 1)
+  df
 }
 ```
+
 
 ```{r}
 get_chr_length <- function(df, chr_column){
@@ -331,11 +301,12 @@ get_chr_length <- function(df, chr_column){
   }else{
     stop("Not a charater format.")
   }
-  new_col_name <- paste0({{chr_column}},"_length")
   df %>%
-    mutate(new_col_name = nchar({{chr_column}}))
+    mutate(chr_length = stringr::str_length(df[[chr_column]]))
+  df
 }
 ```
+
 
 ```{r}
 get_ratio <- function(numerator, denominator){
@@ -347,17 +318,37 @@ get_ratio <- function(numerator, denominator){
   new_col_name <- stringr::str_c({{numerator}},"/",{{denominator}},"_ratio")
   df %>%
     mutate(new_col_name = {{numerator}}/{{denominator}})
+  df
 }
 ```
 
 
 
-
-
 5. Prepare the data for modeling
 
+```{r}
+USvideos_NNA <- get_day_point(USvideos_NNA, "trending_date")
+```
 
+```{r}
+USvideos_NNA <- get_time_point(USvideos_NNA, "publish_time")
+```
 
+```{r}
+USvideos_NNA <- count_rows(USvideos_NNA, "description")
+```
+
+```{r}
+USvideos_NNA <- count_pattern(USvideos_NNA,"tags")
+```
+
+```{r}
+USvideos_NNA <- get_chr_length(USvideos_NNA, "title")
+```
+
+```{r}
+head(USvideos_NNA)
+```
 
 Note: this will form the basis for your midterm project. Take advantage of TA's and my office hours. We can provide feedback and guidance. 
 
