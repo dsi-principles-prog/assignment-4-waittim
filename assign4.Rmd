@@ -262,6 +262,7 @@ get_day_point(USvideos_NNA, "trending_date")%>%
 ```
 
 And for the column called "publish_time", we can split it into 6 columns. The type is "POSIXct", what is different with the last one. And this function will test the type first too.
+Different pulish time will influence the attention obviously, as a result, a video published in right time will get the more views in the beginning.
 ```{r get_time_point}
 get_time_point <- function(df, time_column){
   library(lubridate)
