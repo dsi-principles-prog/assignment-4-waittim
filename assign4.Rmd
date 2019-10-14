@@ -211,7 +211,6 @@ And there is no error too.
 ### Clean up the data. 
 
 Because there are only several observations with NA values, we can just remove all of the rows which have NA value.
-
 ```{r remove NA}
 USvideos_NNA <- as.data.frame(na.omit(USvideos))
 USvideos_NNA
@@ -320,7 +319,7 @@ count_pattern(USvideos_NNA, tags) %>%
 ```
 
 The length of title might influence the result too. Therefore we could create a funcion to calculate the length of character column.
-Of course, this function could be calculate the length of description column too.
+Of course, this function could be used to calculate the length of description column too.
 ```{r get_chr_length}
 get_chr_length <- function(df, chr_column){
   library(tidyverse)
@@ -335,9 +334,9 @@ get_chr_length(USvideos_NNA, title) %>%
   select(title,chr_length)
 ```
 
-
+Sometimes we might need calculate the ratio between 2 variables. This function can help us to get the ratio column.
 ```{r get_ratio}
-get_ratio <- function(df, numerator, denominator, new_col_name){
+get_ratio <- function(df, numerator, denominator){
   if(class(df[[numerator]]) == "double" & class(df[[denominator]]) == "double"){
     print("numerical format check done.")
   }else{
@@ -348,8 +347,7 @@ get_ratio <- function(df, numerator, denominator, new_col_name){
 }
 ```
 
-
-
+Because there are some logical columns in our dataset, but if we want to use machine learning to predict the trending video, it will be easier when we convert them from TRUE/FALSE into 1/0.
 ```{r convert_to_01}
 convert_to_01 <- function(df, comments_disabled_logi, ratings_disabled_logi, video_error_removed_logi){
   df %>% 
@@ -362,15 +360,17 @@ convert_to_01 <- function(df, comments_disabled_logi, ratings_disabled_logi, vid
 }
 ```
 
+Test the function.
 ```{r convert_to_01 test}
 convert_to_01(USvideos_NNA, comments_disabled, ratings_disabled, video_error_or_removed) %>%
   select(comments_disabled,ratings_disabled,video_error_or_removed)
 ```
 
 
-5. Prepare the data for modeling
+### Prepare the data for modeling
 
-```{r}
+Now use the functions we defined before to complish the feature engineering.
+```{r feature engineering}
 USvideos_NNA <- get_day_point(USvideos_NNA, "trending_date")
 
 USvideos_NNA <- get_time_point(USvideos_NNA, "publish_time")
@@ -384,9 +384,37 @@ USvideos_NNA <- get_chr_length(USvideos_NNA, title)
 USvideos_NNA <- convert_to_01(USvideos_NNA, comments_disabled, ratings_disabled, video_error_or_removed)
 ```
 
-```{r}
+A quick overview after the feature engineering result.
+```{r overview after fe}
 head(USvideos_NNA)
 ```
 
-Note: this will form the basis for your midterm project. Take advantage of TA's and my office hours. We can provide feedback and guidance. 
+Now we can just select all of the numerical columns for modeling conveniently. Based on the data, we can try to use a simple machine learning model to predict.
+The columns called "views", "likes", "dislikes" and "comment_count" might can be used to identify the video is trending or not as the label. And the others could be used as inputs.
+```{r select useful column}
+USvideos_ML <- USvideos_NNA %>%
+  select(views, 
+         likes, 
+         dislikes, 
+         comment_count, 
+         category_id, 
+         comments_disabled, 
+         ratings_disabled, 
+         video_error_or_removed,
+         date_year,
+         date_month,
+         date_day,
+         time_year,
+         time_month,
+         time_day,
+         time_hour,
+         time_minute,
+         time_second,
+         chr_row_num,
+         pattern_num,
+         chr_length)
+USvideos_ML
+```
+
+Note: remember divide the samples to trainning set and test set randomly first.
 
